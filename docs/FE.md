@@ -455,6 +455,8 @@ Layout: centered, no timer, no fullscreen enforcement
 
 ### Admin — Section detail (`/admin/sections/[id]`)
 
+Sections have two identifiers: `sectionKey` (unique admin-facing key, e.g. `"listening-toefl"` or `"listening-ielts"`) and `displayName` (student-visible label like `"Listening"`). This allows two sections to share the same student-facing name while remaining distinct in the admin UI.
+
 Contains the drag-and-drop question reorder UI + score map editor.
 
 ```
@@ -534,7 +536,7 @@ Renders warning (yellow) on strike 1, danger (red) on strike 2.
 Auto-hides after 5s on strike 1; stays visible on strike 2 until section advances.
 
 ### `SectionProgressBar.vue`
-Props: `sections` (array of `{ name, status }`)
+Props: `sections` (array of `{ displayName, status }`)
 Renders a horizontal pill list — not clickable, purely display.
 
 ### `DragList.vue`

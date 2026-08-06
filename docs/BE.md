@@ -137,7 +137,8 @@ create table question_options (
 -- Sections
 create table sections (
   id                   uuid primary key default gen_random_uuid(),
-  name                 text not null,
+  section_key          text not null unique,
+  display_name         text not null,
   time_limit_minutes   int not null,
   max_score            numeric not null,
   randomize_questions  boolean not null default true,
