@@ -1,0 +1,56 @@
+:root {
+  --color-bg-page:     #F5F8F8;
+  --color-bg-card:     #FFFFFF;
+  --color-bg-tint:     #E0F7FA;
+  --color-primary:     #00BFA5;
+  --color-primary-dark:#00796B;
+  --color-primary-text:#FFFFFF;
+  --color-text-primary:  #1C2B36;
+  --color-text-secondary:#546E7A;
+  --color-text-muted:    #90A4AE;
+  --color-text-inverse:  #FFFFFF;
+  --color-danger:      #FF5252;
+  --color-danger-bg:   #FFF5F5;
+  --color-warning:     #FFB300;
+  --color-warning-bg:  #FFFBEA;
+  --color-success:     #00897B;
+  --color-success-bg:  #E0F2F1;
+  --color-border:      #CFD8DC;
+  --color-border-strong:#90A4AE;
+  --color-timer-safe:    #1C2B36;
+  --color-timer-warning: #FFB300;
+  --color-timer-danger:  #FF5252;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-md: 18px;
+  --text-lg: 24px;
+  --text-xl: 32px;
+  --text-2xl: 48px;
+}
+
+@keyframes timer-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
