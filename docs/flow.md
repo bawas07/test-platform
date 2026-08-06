@@ -54,7 +54,7 @@ flowchart TD
     CreateAttempt --> Fullscreen[Force full-screen]
     Fullscreen --> RandomizeCheck{randomize_questions?}
     RandomizeCheck -->|Yes| GenOrder[Generate + store locked random question order]
-    RandomizeCheck -->|No| UseOrder[Use admin-defined order from section_questions]
+    RandomizeCheck -->|No| UseOrder[Use admin-defined order (creation order)]
     GenOrder --> ShowQ[Show questions]
     UseOrder --> ShowQ
     ShowQ --> Answer[Student selects answer → API call saves it]

@@ -35,7 +35,7 @@ An indie teacher needs a way to run timed, proctored multiple-choice tests (incl
   - `randomize_questions = false`: questions are served in the explicit order defined by admin via drag-and-drop reorder UI. Required for TOEFL/IELTS where question sequence is fixed.
 - Questions are multiple-choice only; one flagged correct option per question.
 - Some questions carry an audio file (listening questions) — one play only per attempt, ever, including across device switches. Enforced at DB level via unique constraint.
-- Admin can reorder questions within a section via drag-and-drop. Order stored on the Section↔Question join table.
+- Question order within a section is determined by creation order.
 
 ### Scoring configuration
 - Each Test has a `scoring_mode`: `SUM`, `LOWEST_SECTION`, `HIGHEST_SECTION`, or `PERCENTAGE`.
@@ -76,10 +76,9 @@ An indie teacher needs a way to run timed, proctored multiple-choice tests (incl
 
 | Entity | Description |
 |---|---|
-| `questions` | Multiple-choice question; optional audio URL for listening questions. |
+| `questions` | Multiple-choice question; optional audio URL for listening questions. Has `section_id` FK. |
 | `question_options` | Answer choices per question; one flagged correct. |
 | `sections` | Timed question group with max score and `randomize_questions` flag. |
-| `section_questions` | Section↔Question join; carries `order` for admin-defined sequence. |
 | `section_score_maps` | Optional raw→scaled score conversion table per section (replaces Excel formula). |
 | `tests` | Named test with a `scoring_mode`. |
 | `test_sections` | Test↔Section join; carries `order` and optional `weight` (for PERCENTAGE mode). |

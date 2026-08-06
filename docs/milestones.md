@@ -67,7 +67,7 @@ All student-facing pages built with hardcoded sample data in the Pinia test stor
 - **`/admin/login`** — email + password form; hardcoded "success" on any submit for demo purposes
 - **`/admin` — Dashboard** — summary cards (total groups, active tests, students) with sample numbers; recent attempts list
 - **`/admin/questions`** — paginated list of sample questions; create/edit modal with question text, options (add/remove option rows), correct answer flag, optional audio upload field (visual only)
-- **`/admin/sections/[id]`** — section config form (name, time limit, max score, randomize toggle); `DragList` question reorder (functional drag-and-drop in local state, dimmed when randomize=on); `ScoreMapEditor` inline table (add/remove rows, edit values in local state)
+- **`/admin/sections/[id]`** — section config form (name, time limit, max score, randomize toggle); question list with edit/delete actions per question; add question navigates to questions page; `ScoreMapEditor` inline table (add/remove rows, edit values in local state)
 - **`/admin/tests/[id]`** — test config form (name, scoring mode); assign sections with order; weight inputs shown/hidden based on scoring mode = PERCENTAGE; weight sum validation shown inline
 - **`/admin/groups/[id]`** — group config form (name, test picker, start/end time, certificate delay); assign/remove users list
 - **`/admin/users`** — paginated list; create user modal (name → generates a sample code client-side); certificate enabled toggle; group assignment
@@ -96,7 +96,7 @@ All student-facing pages built with hardcoded sample data in the Pinia test stor
 ### 3.2 Migrations
 - All 16 tables created via SQL migration files (one file per logical group):
   - `001_questions.sql` — `questions`, `question_options`
-  - `002_sections.sql` — `sections`, `section_questions`, `section_score_maps`
+  - `002_sections.sql` — `sections`, `section_score_maps`
   - `003_tests.sql` — `tests`, `test_sections`
   - `004_groups.sql` — `test_groups`, `users`, `test_group_users`
   - `005_attempts.sql` — `attempts`, `section_attempts`, `answers`, `audio_plays`

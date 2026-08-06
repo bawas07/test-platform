@@ -39,9 +39,6 @@ server/
       index.post.ts
       [id].get.ts
       [id].put.ts
-      [id]/questions.post.ts
-      [id]/questions/[questionId].delete.ts
-      [id]/questions/reorder.put.ts
       [id]/scoremap.get.ts
       [id]/scoremap.put.ts   ← upsert full score map for section
     questions/
@@ -120,6 +117,7 @@ create extension if not exists "pgcrypto";
 -- Questions
 create table questions (
   id           uuid primary key default gen_random_uuid(),
+  section_id   uuid not null references sections(id) on delete cascade,
   text         text not null,
   audio_url    text,
   created_at   timestamptz not null default now()
@@ -143,16 +141,6 @@ create table sections (
   max_score            numeric not null,
   randomize_questions  boolean not null default true,
   created_at           timestamptz not null default now()
-);
-
--- Section ↔ Question join (with order)
-create table section_questions (
-  id           uuid primary key default gen_random_uuid(),
-  section_id   uuid not null references sections(id) on delete cascade,
-  question_id  uuid not null references questions(id) on delete cascade,
-  "order"      int not null,
-  unique(section_id, question_id),
-  unique(section_id, "order")
 );
 
 -- Optional raw→scaled score map per section
@@ -524,9 +512,6 @@ export default defineEventHandler(async (event) => {
 | POST | `/api/sections` | Admin | Create section |
 | GET | `/api/sections/:id` | Admin | Get section with questions |
 | PUT | `/api/sections/:id` | Admin | Update section config |
-| POST | `/api/sections/:id/questions` | Admin | Add question to section |
-| DELETE | `/api/sections/:id/questions/:questionId` | Admin | Remove question from section |
-| PUT | `/api/sections/:id/questions/reorder` | Admin | Update question order (full order array) |
 | GET | `/api/sections/:id/scoremap` | Admin | Get score conversion table |
 | PUT | `/api/sections/:id/scoremap` | Admin | Upsert full score map |
 

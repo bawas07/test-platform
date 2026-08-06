@@ -457,7 +457,7 @@ Layout: centered, no timer, no fullscreen enforcement
 
 Sections have two identifiers: `sectionKey` (unique admin-facing key, e.g. `"listening-toefl"` or `"listening-ielts"`) and `displayName` (student-visible label like `"Listening"`). This allows two sections to share the same student-facing name while remaining distinct in the admin UI.
 
-Contains the drag-and-drop question reorder UI + score map editor.
+Shows assigned questions with edit/delete actions. Add question navigates to the filtered questions page.
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -466,13 +466,14 @@ Contains the drag-and-drop question reorder UI + score map editor.
 │  Name: [___________]   Time limit: [__] min          │
 │  Max score: [__]   Randomize: [Toggle]               │
 ├─────────────────────────────────────────────────────┤
-│  Questions                        [+ Add question]   │
-│  (drag-and-drop disabled/dimmed when randomize=on)   │
-│  ┌──────────────────────────────────────────────┐   │
-│  │ ⠿  1.  What is the speaker discussing?  [×] │   │
-│  │ ⠿  2.  Which option best describes...   [×] │   │
-│  │ ⠿  3.  The word "adjacent" means...    [×] │   │
-│  └──────────────────────────────────────────────┘   │
+│  Questions                                     │
+│  (shows assigned questions with edit/delete)   │
+│  ┌────────────────────────────────────────┐   │
+│  │ 1. What is the speaker discussing?  ✎ 🗑│   │
+│  │ 2. Which option best describes...  ✎ 🗑 │   │
+│  │ 3. The word "adjacent" means...    ✎ 🗑 │   │
+│  └────────────────────────────────────────┘   │
+│  [+ Add question → goes to questions page]    │
 ├─────────────────────────────────────────────────────┤
 │  Score conversion table (optional — for TOEFL/IELTS) │
 │  [+ Add row]                                         │
@@ -540,7 +541,8 @@ Props: `sections` (array of `{ displayName, status }`)
 Renders a horizontal pill list — not clickable, purely display.
 
 ### `DragList.vue`
-Wraps `vue-draggable-plus`. Props: `items` (array), `itemKey` (string).
+Wraps `vue-draggable-plus`. Used for test section ordering, not question ordering.
+Props: `items` (array), `itemKey` (string).
 Emits: `reorder` with new ordered array.
 Exposes drag handle slot.
 
