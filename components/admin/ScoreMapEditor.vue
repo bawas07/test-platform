@@ -4,9 +4,11 @@ import type { ScoreMapRow } from '~/types/admin'
 const props = withDefaults(
   defineProps<{
     modelValue: ScoreMapRow[]
+    disabled?: boolean
     maxQuestions?: number
   }>(),
   {
+    disabled: false,
     maxQuestions: undefined,
   },
 )
@@ -63,6 +65,7 @@ function removeRow(index: number): void {
               class="score-map-editor__input"
               min="0"
               placeholder="0"
+              :readonly="props.disabled"
             >
           </td>
           <td class="score-map-editor__td">
@@ -72,9 +75,10 @@ function removeRow(index: number): void {
               class="score-map-editor__input"
               min="0"
               placeholder="0"
+              :readonly="props.disabled"
             >
           </td>
-          <td class="score-map-editor__td score-map-editor__td--action">
+          <td v-if="!props.disabled" class="score-map-editor__td score-map-editor__td--action">
             <button
               type="button"
               class="score-map-editor__remove-btn"
@@ -88,7 +92,7 @@ function removeRow(index: number): void {
       </tbody>
     </table>
 
-    <button type="button" class="score-map-editor__add-btn" @click="addRow">
+    <button v-if="!props.disabled" type="button" class="score-map-editor__add-btn" @click="addRow">
       <i class="ti ti-plus" /> Add row
     </button>
   </div>

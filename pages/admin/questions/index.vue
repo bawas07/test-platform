@@ -8,11 +8,16 @@ const route = useRoute()
 const showModal = ref(false)
 const editingId = ref<string | null>(null)
 
+// View mode
+const viewingQuestion = ref<AdminQuestion | null>(null)
+const viewModalOpen = ref(false)
+
 // Form state
 const formText = ref('')
 const formAudioUrl = ref('')
 const formOptions = ref<{ id: string; label: string; text: string }[]>([])
 const correctOptionId = ref('')
+const formSectionId = ref('')
 
 const LABELS = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -30,11 +35,7 @@ const filteredQuestions = computed(() => {
   }
 
   if (filterSection.value) {
-    const section = store.sections.find((s) => s.id === filterSection.value)
-    if (section) {
-      const ids = new Set(section.questionIds)
-      list = list.filter((q) => ids.has(q.id))
-    }
+    list = list.filter((q) => q.sectionId === filterSection.value)
   }
 
   if (filterAudio.value === 'yes') {
@@ -55,6 +56,7 @@ function openCreate() {
     { id: crypto.randomUUID(), label: 'B', text: '' },
   ]
   correctOptionId.value = formOptions.value[0].id
+  formSectionId.value = store.sections[0]?.id ?? ''
   showModal.value = true
 }
 
@@ -64,6 +66,7 @@ function openEdit(question: AdminQuestion) {
   formAudioUrl.value = question.audioUrl ?? ''
   formOptions.value = question.options.map((o) => ({ ...o }))
   correctOptionId.value = question.correctOptionId
+  formSectionId.value = question.sectionId
   showModal.value = true
 }
 
@@ -71,6 +74,16 @@ function closeModal() {
   showModal.value = false
   editingId.value = null
 }
+
+function openView(question: AdminQuestion) {
+  viewingQuestion.value = question
+  viewModalOpen.value = true
+}
+
+const questionSection = computed(() => {
+  if (!viewingQuestion.value) return null
+  return store.sections.find((s) => s.id === viewingQuestion.value!.sectionId) ?? null
+})
 
 function addOption() {
   if (formOptions.value.length >= 6) return
@@ -111,6 +124,7 @@ async function saveQuestion() {
     audioUrl: formAudioUrl.value.trim() || null,
     options,
     correctOptionId: correctOptionId.value,
+    sectionId: formSectionId.value,
   }
 
   try {
@@ -195,6 +209,7 @@ const questionColumns = [
       </template>
       <template #cell-actions="{ row }">
         <div class="actions-cell">
+          <AppButton variant="ghost" size="sm" @click="openView(row)"><i class="ti ti-eye" /> View</AppButton>
           <AppButton variant="ghost" size="sm" @click="openEdit(row)"><i class="ti ti-edit" /> Edit</AppButton>
           <AppButton variant="ghost" size="sm" class="delete-ghost" @click="deleteQuestion(row.id)"><i class="ti ti-trash" /> Delete</AppButton>
         </div>
@@ -204,6 +219,15 @@ const questionColumns = [
     <!-- Create / Edit Modal -->
     <AppModal v-model="showModal" :title="editingId ? 'Edit question' : 'Add question'" size="lg">
       <div class="modal-form">
+        <div class="form-group">
+          <label class="options-legend">Section</label>
+          <select v-model="formSectionId" class="styled-select" required>
+            <option value="" disabled>Select a section</option>
+            <option v-for="s in store.sections" :key="s.id" :value="s.id">
+              {{ s.displayName || s.sectionKey }}
+            </option>
+          </select>
+        </div>
         <AppInput v-model="formText" label="Question text" placeholder="Enter the question" />
 
         <fieldset class="options-fieldset">
@@ -255,6 +279,42 @@ const questionColumns = [
         <AppButton variant="primary" @click="saveQuestion">
           {{ editingId ? 'Save question' : 'Save question' }}
         </AppButton>
+      </template>
+    </AppModal>
+
+    <!-- View Modal -->
+    <AppModal v-model="viewModalOpen" title="View question" size="lg">
+      <div class="modal-form" v-if="viewingQuestion">
+        <AppInput :model-value="viewingQuestion.text" label="Question text" disabled />
+
+        <fieldset class="options-fieldset">
+          <legend class="options-legend">Options</legend>
+          <div v-for="opt in viewingQuestion.options" :key="opt.id" class="option-row">
+            <span class="option-label">{{ opt.label }}</span>
+            <AppInput :model-value="opt.text" disabled class="option-input" />
+            <span v-if="opt.id === viewingQuestion.correctOptionId" class="correct-mark">✓</span>
+          </div>
+        </fieldset>
+
+        <AppInput :model-value="viewingQuestion.audioUrl || '—'" label="Audio URL" disabled />
+
+        <!-- Part of section -->
+        <div class="related-section">
+          <p class="options-legend">Part of section</p>
+          <div v-if="questionSection" class="related-list">
+            <button
+              type="button"
+              class="related-link"
+              @click="viewModalOpen = false; navigateTo(`/admin/sections/${questionSection.id}`)"
+            >
+              {{ questionSection.displayName || questionSection.sectionKey }}
+            </button>
+          </div>
+          <div v-else class="related-empty">Not assigned to any section</div>
+        </div>
+      </div>
+      <template #footer>
+        <AppButton variant="ghost" @click="viewModalOpen = false">Close</AppButton>
       </template>
     </AppModal>
   </div>
@@ -419,7 +479,7 @@ const questionColumns = [
   min-width: 180px;
 }
 
-.filter-select {
+.filter-select, .styled-select {
   flex: 0 0 auto;
   min-width: 150px;
   height: 40px;
@@ -432,8 +492,60 @@ const questionColumns = [
   font-family: inherit;
 }
 
-.filter-select:focus {
+.filter-select:focus,
+.styled-select:focus {
   outline: none;
   box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.correct-mark {
+  color: var(--color-success);
+  font-weight: 600;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.related-section {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.related-empty {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.related-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.related-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.related-link:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-bg-tint);
 }
 </style>

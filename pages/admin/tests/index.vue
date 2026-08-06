@@ -36,6 +36,10 @@ function scoringBadge(mode: string): string {
   return map[mode] ?? mode
 }
 
+function goToSections(testId: string) {
+  navigateTo({ path: '/admin/sections', query: { test: testId } })
+}
+
 const columns = [
   { key: 'name', label: 'Name' },
   { key: 'scoringMode', label: 'Scoring Mode' },
@@ -58,10 +62,13 @@ const columns = [
         <AppBadge :label="scoringBadge(row.scoringMode)" variant="primary" />
       </template>
       <template #cell-sections="{ row }">
-        {{ row.sectionAssignments.length }}
+        <button class="link-btn" @click="goToSections(row.id)">
+          {{ row.sectionAssignments.length }} section{{ row.sectionAssignments.length !== 1 ? 's' : '' }}
+        </button>
       </template>
       <template #cell-actions="{ row }">
         <div class="actions-cell">
+          <AppButton variant="ghost" size="sm" @click="navigateTo(`/admin/tests/${row.id}?view=1`)"><i class="ti ti-eye" /> View</AppButton>
           <AppButton variant="ghost" size="sm" @click="navigateTo(`/admin/tests/${row.id}`)"><i class="ti ti-edit" /> Edit</AppButton>
           <AppButton variant="ghost" size="sm" class="delete-ghost" @click="deleteTest(row.id)"><i class="ti ti-trash" /> Delete</AppButton>
         </div>
@@ -97,5 +104,22 @@ const columns = [
 .delete-ghost:hover {
   color: var(--color-danger);
   background-color: var(--color-danger-bg);
+}
+
+.link-btn {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link-btn:hover {
+  color: var(--color-primary-dark);
 }
 </style>

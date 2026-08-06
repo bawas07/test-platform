@@ -45,7 +45,13 @@ function toDatetimeLocal(iso: string): string {
 const assignedUsers = computed(() =>
   localUserIds.value
     .map((id) => store.users.find((u) => u.id === id))
-    .filter(Boolean) as Array<{ id: string; name: string }>,
+    .filter(Boolean) as Array<{
+      id: string
+      name: string
+      email: string
+      testCode: string
+      certificateEnabled: boolean
+    }>,
 )
 
 const availableUsers = computed(() =>
@@ -134,30 +140,37 @@ async function deleteThis() {
       <AppInput v-model.number="localCertDelay" label="Certificate delay (hours)" type="number" />
     </AppCard>
 
-    <!-- Users Card -->
+    <!-- Students Card -->
     <AppCard padding="md" class="form-card">
-      <h2 class="card-heading">Users</h2>
+      <h2 class="card-heading">Students ({{ assignedUsers.length }})</h2>
 
-      <div v-if="assignedUsers.length === 0" class="empty-hint">
-        No users assigned yet.
-      </div>
-
-      <div v-else class="user-chip-list">
-        <span v-for="user in assignedUsers" :key="user.id" class="user-chip">
-          {{ user.name }}
-          <button
-            type="button"
-            class="chip-remove-btn"
-            aria-label="Remove user"
-            @click="removeUser(user.id)"
-          >
-            ×
+      <div v-if="assignedUsers.length > 0" class="student-table">
+        <div class="student-header">
+          <span class="student-col name-col">Name</span>
+          <span class="student-col email-col">Email</span>
+          <span class="student-col code-col">Code</span>
+          <span class="student-col cert-col">Certificate</span>
+          <span class="student-col actions-col"></span>
+        </div>
+        <div v-for="user in assignedUsers" :key="user.id" class="student-row">
+          <button class="student-link name-col" type="button" @click="navigateTo(`/admin/users/${user.id}`)">
+            {{ user.name }}
           </button>
-        </span>
+          <span class="student-col email-col">{{ user.email || '—' }}</span>
+          <code class="student-col code-col">{{ user.testCode }}</code>
+          <span class="student-col cert-col">
+            <AppBadge :label="user.certificateEnabled ? 'Yes' : 'No'" :variant="user.certificateEnabled ? 'success' : 'neutral'" />
+          </span>
+          <span class="student-col actions-col">
+            <AppButton variant="ghost" size="sm" class="delete-ghost" @click="removeUser(user.id)">Remove</AppButton>
+          </span>
+        </div>
       </div>
+      <div v-else class="empty-hint">No students assigned yet.</div>
 
+      <!-- Add student -->
       <div v-if="availableUsers.length > 0" class="available-section">
-        <h3 class="available-heading">Add users</h3>
+        <h3 class="available-heading">Add student</h3>
         <div class="available-list">
           <button
             v-for="user in availableUsers"
@@ -166,7 +179,7 @@ async function deleteThis() {
             class="add-user-btn"
             @click="addUser(user.id)"
           >
-            + {{ user.name }}
+            + {{ user.name }} ({{ user.email || user.testCode }})
           </button>
         </div>
       </div>
@@ -247,43 +260,81 @@ async function deleteThis() {
   padding: var(--space-2) 0;
 }
 
-.user-chip-list {
+/* Student table */
+.student-table {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
+  flex-direction: column;
 }
 
-.user-chip {
-  display: inline-flex;
+.student-header {
+  display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-3);
-  background-color: var(--color-bg-tint);
-  color: var(--color-primary-dark);
-  border-radius: var(--radius-full);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 2px solid var(--color-border);
   font-size: var(--text-xs);
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--color-text-secondary);
 }
 
-.chip-remove-btn {
-  display: inline-flex;
+.student-row {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 14px;
-  cursor: pointer;
-  line-height: 1;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.chip-remove-btn:hover {
-  background-color: var(--color-danger-bg);
-  color: var(--color-danger);
+.student-row:hover {
+  background-color: var(--color-bg-page);
+}
+
+.student-col {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+.name-col {
+  flex: 2;
+  min-width: 120px;
+}
+
+.email-col {
+  flex: 2;
+  min-width: 140px;
+}
+
+.code-col {
+  flex: 1;
+  min-width: 90px;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-page);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.cert-col {
+  flex: 1;
+  min-width: 80px;
+}
+
+.actions-col {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.student-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.student-link:hover {
+  text-decoration: underline;
 }
 
 .available-section {

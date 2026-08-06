@@ -2,6 +2,25 @@
 const store = useAdminStore()
 const toast = useToastStore()
 
+// Filters
+const searchQuery = ref('')
+const filterTest = ref('')
+
+const filteredGroups = computed(() => {
+  let list = store.groups
+
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.trim().toLowerCase()
+    list = list.filter((g) => g.name.toLowerCase().includes(query))
+  }
+
+  if (filterTest.value) {
+    list = list.filter((g) => g.testId === filterTest.value)
+  }
+
+  return list
+})
+
 function testName(testId: string): string {
   return store.tests.find((t) => t.id === testId)?.name ?? '—'
 }
@@ -56,7 +75,19 @@ const columns = [
       </AppButton>
     </div>
 
-    <DataTable :columns="columns" :rows="store.groups">
+    <div class="filter-bar">
+      <AppInput
+        v-model="searchQuery"
+        placeholder="Search by name…"
+        class="filter-search"
+      />
+      <select v-model="filterTest" class="styled-select filter-select">
+        <option value="">All tests</option>
+        <option v-for="t in store.tests" :key="t.id" :value="t.id">{{ t.name }}</option>
+      </select>
+    </div>
+
+    <DataTable :columns="columns" :rows="filteredGroups" :empty-message="store.groups.length ? 'No groups match the current filters' : undefined">
       <template #cell-test="{ row }">
         {{ testName(row.testId) }}
       </template>
@@ -68,6 +99,7 @@ const columns = [
       </template>
       <template #cell-actions="{ row }">
         <div class="actions-cell">
+          <AppButton variant="ghost" size="sm" @click="navigateTo(`/admin/groups/${row.id}`)"><i class="ti ti-eye" /> View</AppButton>
           <AppButton variant="ghost" size="sm" @click="navigateTo(`/admin/groups/${row.id}`)"><i class="ti ti-edit" /> Edit</AppButton>
           <AppButton variant="ghost" size="sm" class="delete-ghost" @click="deleteGroup(row.id)"><i class="ti ti-trash" /> Delete</AppButton>
         </div>
@@ -89,6 +121,38 @@ const columns = [
   font-size: var(--text-lg);
   font-weight: 600;
   color: var(--color-text-primary);
+}
+
+.filter-bar {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.filter-search {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.filter-select,
+.styled-select {
+  flex: 0 0 auto;
+  min-width: 150px;
+  height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+}
+
+.filter-select:focus,
+.styled-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary);
 }
 
 .date-range {

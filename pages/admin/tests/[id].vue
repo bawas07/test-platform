@@ -7,6 +7,7 @@ const route = useRoute()
 
 const testId = computed(() => route.params.id as string)
 const test = computed(() => store.tests.find((t) => t.id === testId.value))
+const isViewMode = computed(() => route.query.view === '1')
 
 // Local editable copy
 const localName = ref('')
@@ -88,6 +89,24 @@ function onReorder(items: Array<{ id: string; name: string; weight?: number }>) 
   })
 }
 
+function goToSectionsFromTest() {
+  navigateTo({ path: '/admin/sections', query: { test: testId.value } })
+}
+
+function scoringBadge(mode: string): string {
+  const map: Record<string, string> = {
+    SUM: 'Sum',
+    LOWEST_SECTION: 'Lowest Section',
+    HIGHEST_SECTION: 'Highest Section',
+    PERCENTAGE: 'Percentage',
+  }
+  return map[mode] ?? mode
+}
+
+function groupsForTest(testId: string) {
+  return store.groups.filter((g) => g.testId === testId)
+}
+
 async function saveTest() {
   if (localScoringMode.value === 'PERCENTAGE' && !weightsValid.value) {
     toast.show(`Weights must sum to 100% (currently: ${weightTotal.value}%)`, 'danger')
@@ -126,15 +145,15 @@ async function deleteThis() {
   <div v-else>
     <!-- Header -->
     <div class="page-header">
-      <h1 class="page-heading">Test: {{ test.name }}</h1>
-      <div class="header-actions">
+      <h1 class="page-heading">Test: {{ test.name }} <span v-if="isViewMode" class="view-badge">(View only)</span></h1>
+      <div v-if="!isViewMode" class="header-actions">
         <AppButton variant="primary" @click="saveTest">Save</AppButton>
         <AppButton variant="danger" @click="deleteThis">Delete</AppButton>
       </div>
     </div>
 
     <!-- Form Card -->
-    <AppCard padding="md" class="form-card">
+    <AppCard v-if="!isViewMode" padding="md" class="form-card">
       <AppInput v-model="localName" label="Name" />
 
       <div class="scoring-field">
@@ -151,69 +170,115 @@ async function deleteThis() {
       </div>
     </AppCard>
 
+    <!-- View-mode detail card -->
+    <AppCard v-else padding="md" class="form-card">
+      <dl class="detail-list">
+        <div class="detail-row">
+          <dt class="detail-label">Name</dt>
+          <dd class="detail-value">{{ localName }}</dd>
+        </div>
+        <div class="detail-row">
+          <dt class="detail-label">Scoring mode</dt>
+          <dd class="detail-value">
+            <AppBadge :label="scoringBadge(localScoringMode)" variant="primary" />
+          </dd>
+        </div>
+      </dl>
+    </AppCard>
+
     <!-- Sections Card -->
     <AppCard padding="md" class="form-card">
       <h2 class="card-heading">Sections</h2>
 
-      <DragList
-        :items="assignedSections"
-        item-key="id"
-        @reorder="onReorder"
-      >
-        <template #item="{ item: secItem }">
-          <div class="drag-item-row">
-            <span class="drag-item-text">{{ secItem.name }}</span>
-            <template v-if="localScoringMode === 'PERCENTAGE'">
-              <input
-                type="number"
-                class="weight-input"
-                :value="secItem.weight"
-                min="0"
-                max="100"
-                placeholder="Weight %"
-                @input="updateWeight(secItem.id, Number(($event.target as HTMLInputElement).value))"
+      <template v-if="!isViewMode">
+        <DragList
+          :items="assignedSections"
+          item-key="id"
+          @reorder="onReorder"
+        >
+          <template #item="{ item: secItem }">
+            <div class="drag-item-row">
+              <button class="drag-item-link" type="button" @click="goToSectionsFromTest">{{ secItem.name }}</button>
+              <template v-if="localScoringMode === 'PERCENTAGE'">
+                <input
+                  type="number"
+                  class="weight-input"
+                  :value="secItem.weight"
+                  min="0"
+                  max="100"
+                  placeholder="Weight %"
+                  @input="updateWeight(secItem.id, Number(($event.target as HTMLInputElement).value))"
+                >
+              </template>
+              <button
+                type="button"
+                class="item-remove-btn"
+                aria-label="Remove section"
+                @click="removeSection(secItem.id)"
               >
-            </template>
+                ×
+              </button>
+            </div>
+          </template>
+        </DragList>
+
+        <div v-if="assignedSections.length === 0" class="empty-hint">
+          No sections assigned yet.
+        </div>
+
+        <p
+          v-if="localScoringMode === 'PERCENTAGE' && !weightsValid"
+          class="weight-error"
+        >
+          Weights must sum to 100% (currently: {{ weightTotal }}%)
+        </p>
+
+        <div v-if="availableSections.length > 0" class="available-section">
+          <h3 class="available-heading">Available sections</h3>
+          <div class="available-list">
             <button
+              v-for="sec in availableSections"
+              :key="sec.id"
               type="button"
-              class="item-remove-btn"
-              aria-label="Remove section"
-              @click="removeSection(secItem.id)"
+              class="add-section-btn"
+              @click="addSection(sec.id)"
             >
-              ×
+              + {{ sec.displayName }}
             </button>
           </div>
-        </template>
-      </DragList>
+        </div>
+      </template>
 
-      <div v-if="assignedSections.length === 0" class="empty-hint">
-        No sections assigned yet.
-      </div>
+      <!-- View-only section list -->
+      <template v-else>
+        <ol v-if="assignedSections.length > 0" class="section-view-list">
+          <li v-for="sec in assignedSections" :key="sec.id" class="section-view-item">
+            <span class="section-view-name">{{ sec.name }}</span>
+            <span v-if="localScoringMode === 'PERCENTAGE'" class="section-view-weight">{{ sec.weight }}%</span>
+          </li>
+        </ol>
+        <div v-else class="empty-hint">No sections assigned.</div>
+      </template>
+    </AppCard>
 
-      <!-- Weight validation -->
-      <p
-        v-if="localScoringMode === 'PERCENTAGE' && !weightsValid"
-        class="weight-error"
-      >
-        Weights must sum to 100% (currently: {{ weightTotal }}%)
-      </p>
-
-      <!-- Available sections -->
-      <div v-if="availableSections.length > 0" class="available-section">
-        <h3 class="available-heading">Available sections</h3>
-        <div class="available-list">
+    <!-- Related: part of groups -->
+    <div v-if="isViewMode" class="related-section">
+      <AppCard padding="md">
+        <h2 class="card-heading">Part of groups</h2>
+        <div v-if="groupsForTest(testId).length === 0" class="related-empty">Not used by any group</div>
+        <div v-else class="related-list">
           <button
-            v-for="sec in availableSections"
-            :key="sec.id"
+            v-for="g in groupsForTest(testId)"
+            :key="g.id"
             type="button"
-            class="add-section-btn"
-            @click="addSection(sec.id)"
+            class="related-link"
+            @click="navigateTo(`/admin/groups/${g.id}`)"
           >
-            + {{ sec.displayName }}
+            {{ g.name }}
           </button>
         </div>
-      </div>
-    </AppCard>
+      </AppCard>
+    </div>
   </div>
 </template>
 
@@ -290,11 +355,25 @@ async function deleteThis() {
   width: 100%;
 }
 
-.drag-item-text {
+.drag-item-link {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: left;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.drag-item-link:hover {
+  color: var(--color-primary-dark);
 }
 
 .weight-input {
@@ -403,5 +482,108 @@ async function deleteThis() {
 
 .back-link:hover {
   text-decoration: underline;
+}
+
+.view-badge {
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.related-section {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.related-empty {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.related-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.related-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.related-link:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-bg-tint);
+}
+
+.weight-readonly {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  width: 80px;
+  text-align: center;
+}
+
+.detail-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.detail-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.detail-label {
+  width: 120px;
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.detail-value {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+.section-view-list {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.section-view-item {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.section-view-name {
+  flex: 1;
+}
+
+.section-view-weight {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AdminSection, ScoreMapRow } from '~/types/admin'
+import type { AdminQuestion, AdminSection, ScoreMapRow } from '~/types/admin'
 
 const store = useAdminStore()
 const toast = useToastStore()
@@ -7,6 +7,7 @@ const route = useRoute()
 
 const sectionId = computed(() => route.params.id as string)
 const section = computed(() => store.sections.find((s) => s.id === sectionId.value))
+const isViewMode = computed(() => route.query.view === '1')
 
 // Local editable copy
 const localSectionKey = ref('')
@@ -14,7 +15,6 @@ const localDisplayName = ref('')
 const localTimeLimit = ref(0)
 const localMaxScore = ref(0)
 const localRandomize = ref(false)
-const localQuestionIds = ref<string[]>([])
 const localScoreMap = ref<ScoreMapRow[]>([])
 
 // Sync from store when section changes
@@ -27,34 +27,27 @@ watch(
     localTimeLimit.value = sec.timeLimit
     localMaxScore.value = sec.maxScore
     localRandomize.value = sec.randomize
-    localQuestionIds.value = [...sec.questionIds]
     localScoreMap.value = sec.scoreMap.map((r) => ({ ...r }))
   },
   { immediate: true },
 )
 
-// Assigned questions (objects)
-const assignedQuestions = computed(() =>
-  localQuestionIds.value
-    .map((id) => store.questions.find((q) => q.id === id))
-    .filter(Boolean) as Array<{ id: string; text: string }>,
+const sectionQuestions = computed(() =>
+  store.questions.filter((q) => q.sectionId === sectionId.value),
 )
 
-// Unassigned questions
-const availableQuestions = computed(() =>
-  store.questions.filter((q) => !localQuestionIds.value.includes(q.id)),
-)
-
-function addQuestion(questionId: string) {
-  localQuestionIds.value = [...localQuestionIds.value, questionId]
+function openAddQuestion() {
+  navigateTo({ path: '/admin/questions', query: { section: sectionId.value } })
 }
 
-function removeQuestion(questionId: string) {
-  localQuestionIds.value = localQuestionIds.value.filter((id) => id !== questionId)
+function openEditQuestion(question: AdminQuestion) {
+  navigateTo({ path: '/admin/questions', query: { section: sectionId.value } })
 }
 
-function onReorder(items: Array<{ id: string; text: string }>) {
-  localQuestionIds.value = items.map((item) => item.id)
+async function deleteSectionQuestion(questionId: string) {
+  if (!confirm('Remove this question from the section?')) return
+  await store.deleteQuestion(questionId)
+  toast.show('Question deleted', 'success')
 }
 
 async function saveSection() {
@@ -65,7 +58,6 @@ async function saveSection() {
       timeLimit: localTimeLimit.value,
       maxScore: localMaxScore.value,
       randomize: localRandomize.value,
-      questionIds: localQuestionIds.value,
       scoreMap: localScoreMap.value,
     })
     toast.show('Section saved', 'success')
@@ -84,6 +76,17 @@ async function deleteThis() {
     toast.show(err instanceof Error ? err.message : 'Failed to delete section', 'danger')
   }
 }
+
+function testsForSection(sectionId: string) {
+  return store.tests.filter((t) => t.sectionAssignments.some((a) => a.sectionId === sectionId))
+}
+
+function groupsForSection(sectionId: string) {
+  return store.groups.filter((g) => {
+    const test = store.tests.find((t) => t.id === g.testId)
+    return test?.sectionAssignments.some((a) => a.sectionId === sectionId)
+  })
+}
 </script>
 
 <template>
@@ -95,15 +98,15 @@ async function deleteThis() {
   <div v-else>
     <!-- Header -->
     <div class="page-header">
-      <h1 class="page-heading">Section: {{ section.displayName || section.sectionKey }}</h1>
-      <div class="header-actions">
+      <h1 class="page-heading">Section: {{ section.displayName || section.sectionKey }} <span v-if="isViewMode" class="view-badge">(View only)</span></h1>
+      <div v-if="!isViewMode" class="header-actions">
         <AppButton variant="primary" @click="saveSection">Save</AppButton>
         <AppButton variant="danger" @click="deleteThis">Delete</AppButton>
       </div>
     </div>
 
     <!-- Form Card -->
-    <AppCard padding="md" class="form-card">
+    <AppCard v-if="!isViewMode" padding="md" class="form-card">
       <AppInput v-model="localSectionKey" label="Section key" />
       <AppInput v-model="localDisplayName" label="Display name" />
       <AppInput v-model.number="localTimeLimit" label="Time limit (minutes)" type="number" />
@@ -114,60 +117,100 @@ async function deleteThis() {
       </label>
     </AppCard>
 
+    <!-- View-mode detail card -->
+    <AppCard v-else padding="md" class="form-card">
+      <dl class="detail-list">
+        <div class="detail-row">
+          <dt class="detail-label">Section key</dt>
+          <dd class="detail-value">{{ localSectionKey || '—' }}</dd>
+        </div>
+        <div class="detail-row">
+          <dt class="detail-label">Display name</dt>
+          <dd class="detail-value">{{ localDisplayName }}</dd>
+        </div>
+        <div class="detail-row">
+          <dt class="detail-label">Time limit</dt>
+          <dd class="detail-value">{{ localTimeLimit }} minutes</dd>
+        </div>
+        <div class="detail-row">
+          <dt class="detail-label">Max score</dt>
+          <dd class="detail-value">{{ localMaxScore }}</dd>
+        </div>
+        <div class="detail-row">
+          <dt class="detail-label">Randomize</dt>
+          <dd class="detail-value">
+            <AppBadge :label="localRandomize ? 'Yes' : 'No'" :variant="localRandomize ? 'primary' : 'neutral'" />
+          </dd>
+        </div>
+      </dl>
+    </AppCard>
+
     <!-- Questions Card -->
     <AppCard padding="md" class="form-card">
       <h2 class="card-heading">Questions</h2>
-      <p v-if="localRandomize" class="randomize-notice">
-        Questions are randomized; drag ordering is disabled.
-      </p>
 
-      <DragList
-        :items="assignedQuestions"
-        item-key="id"
-        :disabled="localRandomize"
-        @reorder="onReorder"
-      >
-        <template #item="{ item }">
-          <div class="drag-item-row">
-            <span class="drag-item-text">{{ item.text }}</span>
-            <button
-              type="button"
-              class="item-remove-btn"
-              aria-label="Remove question"
-              @click="removeQuestion(item.id)"
-            >
-              ×
-            </button>
+      <template v-if="!isViewMode">
+        <div v-if="sectionQuestions.length > 0" class="question-edit-list">
+          <div v-for="(q, idx) in sectionQuestions" :key="q.id" class="question-edit-row">
+            <span class="question-edit-index">{{ idx + 1 }}.</span>
+            <span class="question-edit-text">{{ q.text.length > 60 ? q.text.slice(0, 60) + '…' : q.text }}</span>
+            <AppButton variant="ghost" size="sm" @click="openEditQuestion(q)"><i class="ti ti-edit" /></AppButton>
+            <AppButton variant="ghost" size="sm" class="delete-ghost" @click="deleteSectionQuestion(q.id)"><i class="ti ti-trash" /></AppButton>
           </div>
-        </template>
-      </DragList>
-
-      <div v-if="assignedQuestions.length === 0" class="empty-hint">
-        No questions assigned yet.
-      </div>
-
-      <!-- Available questions -->
-      <div v-if="availableQuestions.length > 0" class="available-section">
-        <h3 class="available-heading">Available questions</h3>
-        <div class="available-list">
-          <button
-            v-for="q in availableQuestions"
-            :key="q.id"
-            type="button"
-            class="add-question-btn"
-            @click="addQuestion(q.id)"
-          >
-            + {{ q.text.length > 60 ? q.text.slice(0, 60) + '…' : q.text }}
-          </button>
         </div>
-      </div>
+        <div v-else class="empty-hint">No questions yet.</div>
+
+        <AppButton variant="secondary" size="sm" class="add-question-inline" @click="openAddQuestion">
+          <i class="ti ti-plus" /> Add question
+        </AppButton>
+      </template>
+
+      <template v-else>
+        <ol v-if="sectionQuestions.length > 0" class="question-view-list">
+          <li v-for="q in sectionQuestions" :key="q.id" class="question-view-item">{{ q.text }}</li>
+        </ol>
+        <div v-else class="empty-hint">No questions assigned.</div>
+      </template>
     </AppCard>
 
     <!-- Score Conversion Card -->
     <AppCard padding="md" class="form-card">
       <h2 class="card-heading">Score conversion table</h2>
-      <ScoreMapEditor v-model="localScoreMap" />
+      <ScoreMapEditor v-model="localScoreMap" :disabled="isViewMode" />
     </AppCard>
+
+    <!-- Related: part of tests / groups -->
+    <div v-if="isViewMode" class="related-section">
+      <AppCard padding="md">
+        <h2 class="card-heading">Part of tests</h2>
+        <div v-if="testsForSection(sectionId).length === 0" class="related-empty">Not assigned to any test</div>
+        <div v-else class="related-list">
+          <button
+            v-for="t in testsForSection(sectionId)"
+            :key="t.id"
+            type="button"
+            class="related-link"
+            @click="navigateTo(`/admin/tests/${t.id}`)"
+          >
+            {{ t.name }}
+          </button>
+        </div>
+
+        <h2 class="card-heading" style="margin-top: var(--space-5)">Part of groups</h2>
+        <div v-if="groupsForSection(sectionId).length === 0" class="related-empty">Not assigned to any group</div>
+        <div v-else class="related-list">
+          <button
+            v-for="g in groupsForSection(sectionId)"
+            :key="g.id"
+            type="button"
+            class="related-link"
+            @click="navigateTo(`/admin/groups/${g.id}`)"
+          >
+            {{ g.name }}
+          </button>
+        </div>
+      </AppCard>
+    </div>
   </div>
 </template>
 
@@ -228,39 +271,47 @@ async function deleteThis() {
   font-style: italic;
 }
 
-.drag-item-row {
+.delete-ghost {
+  color: var(--color-danger);
+}
+
+.delete-ghost:hover {
+  color: var(--color-danger);
+  background-color: var(--color-danger-bg);
+}
+
+.question-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.question-edit-row {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-page);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
 }
 
-.drag-item-text {
+.question-edit-index {
+  color: var(--color-text-muted);
+  font-weight: 500;
+  min-width: 24px;
+}
+
+.question-edit-text {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.item-remove-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 16px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.item-remove-btn:hover {
-  background-color: var(--color-danger-bg);
-  color: var(--color-danger);
+.add-question-inline {
+  align-self: flex-start;
 }
 
 .empty-hint {
@@ -268,45 +319,6 @@ async function deleteThis() {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
   text-align: center;
-}
-
-.available-section {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
-}
-
-.available-heading {
-  margin: 0 0 var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--color-text-secondary);
-}
-
-.available-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.add-question-btn {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-card);
-  color: var(--color-text-primary);
-  font-size: var(--text-sm);
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 150ms ease, background-color 150ms ease;
-}
-
-.add-question-btn:hover {
-  border-color: var(--color-primary);
-  background-color: var(--color-bg-tint);
 }
 
 .not-found {
@@ -323,5 +335,89 @@ async function deleteThis() {
 
 .back-link:hover {
   text-decoration: underline;
+}
+
+.view-badge {
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.related-section {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.related-empty {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.related-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.related-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.related-link:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-bg-tint);
+}
+
+.detail-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.detail-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.detail-label {
+  width: 120px;
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.detail-value {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+.question-view-list {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.question-view-item {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  line-height: 1.5;
 }
 </style>

@@ -9,12 +9,16 @@ const editingId = ref<string | null>(null)
 
 // Form state
 const formName = ref('')
+const formEmail = ref('')
+const formPhone = ref('')
 const formCertEnabled = ref(false)
 const formTestCode = ref('')
 
 function openCreate() {
   editingId.value = null
   formName.value = ''
+  formEmail.value = ''
+  formPhone.value = ''
   formCertEnabled.value = false
   formTestCode.value = ''
   showModal.value = true
@@ -23,6 +27,8 @@ function openCreate() {
 function openEdit(user: AdminUser) {
   editingId.value = user.id
   formName.value = user.name
+  formEmail.value = user.email
+  formPhone.value = user.phone
   formCertEnabled.value = user.certificateEnabled
   formTestCode.value = user.testCode
   showModal.value = true
@@ -40,12 +46,16 @@ async function saveUser() {
     if (editingId.value) {
       await store.updateUser(editingId.value, {
         name: formName.value.trim(),
+        email: formEmail.value.trim(),
+        phone: formPhone.value.trim(),
         certificateEnabled: formCertEnabled.value,
       })
       toast.show('Student updated', 'success')
     } else {
       await store.createUser({
         name: formName.value.trim(),
+        email: formEmail.value.trim(),
+        phone: formPhone.value.trim(),
         certificateEnabled: formCertEnabled.value,
         groupIds: [],
       })
@@ -75,7 +85,8 @@ function groupNames(user: AdminUser): string[] {
 
 const columns = [
   { key: 'name', label: 'Name' },
-  { key: 'testCode', label: 'Test Code' },
+  { key: 'email', label: 'Email' },
+  { key: 'code', label: 'Code' },
   { key: 'certificate', label: 'Certificate' },
   { key: 'groups', label: 'Groups' },
   { key: 'actions', label: 'Actions' },
@@ -92,6 +103,17 @@ const columns = [
     </div>
 
     <DataTable :columns="columns" :rows="store.users">
+      <template #cell-name="{ row }">
+        <button class="name-link" type="button" @click="navigateTo(`/admin/users/${row.id}`)">
+          {{ row.name }}
+        </button>
+      </template>
+      <template #cell-email="{ row }">
+        <span class="muted-cell">{{ row.email || '—' }}</span>
+      </template>
+      <template #cell-code="{ row }">
+        <code class="code-cell">{{ row.testCode }}</code>
+      </template>
       <template #cell-certificate="{ row }">
         <AppBadge
           :label="row.certificateEnabled ? 'Enabled' : 'Disabled'"
@@ -111,6 +133,7 @@ const columns = [
       </template>
       <template #cell-actions="{ row }">
         <div class="actions-cell">
+          <AppButton variant="ghost" size="sm" @click="navigateTo(`/admin/users/${row.id}`)"><i class="ti ti-eye" /> View</AppButton>
           <AppButton variant="ghost" size="sm" @click="openEdit(row)"><i class="ti ti-edit" /> Edit</AppButton>
           <AppButton variant="ghost" size="sm" class="delete-ghost" @click="deleteUser(row.id)"><i class="ti ti-trash" /> Delete</AppButton>
         </div>
@@ -121,6 +144,8 @@ const columns = [
     <AppModal v-model="showModal" :title="editingId ? 'Edit student' : 'Add student'">
       <div class="modal-form">
         <AppInput v-model="formName" label="Name" placeholder="Student name" />
+        <AppInput v-model="formEmail" label="Email" type="email" placeholder="student@email.com" />
+        <AppInput v-model="formPhone" label="Phone" placeholder="08xx-xxxx-xxxx" />
 
         <div v-if="editingId" class="readonly-field">
           <label class="field-label">Test Code</label>
@@ -156,6 +181,34 @@ const columns = [
   font-size: var(--text-lg);
   font-weight: 600;
   color: var(--color-text-primary);
+}
+
+.name-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.name-link:hover {
+  text-decoration: underline;
+}
+
+.muted-cell {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.code-cell {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-page);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
 }
 
 .actions-cell {

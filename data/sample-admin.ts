@@ -14,6 +14,7 @@ import type {
 export const sampleQuestions: AdminQuestion[] = [
   {
     id: 'q-1',
+    sectionId: 'section-1',
     text: 'What is the main topic of the conversation?',
     audioUrl: '/audio/sample.mp3',
     options: [
@@ -26,6 +27,7 @@ export const sampleQuestions: AdminQuestion[] = [
   },
   {
     id: 'q-2',
+    sectionId: 'section-1',
     text: 'According to the speaker, when will the meeting take place?',
     audioUrl: '/audio/sample.mp3',
     options: [
@@ -38,6 +40,7 @@ export const sampleQuestions: AdminQuestion[] = [
   },
   {
     id: 'q-3',
+    sectionId: 'section-1',
     text: 'What does the woman suggest they do next?',
     audioUrl: null,
     options: [
@@ -50,6 +53,7 @@ export const sampleQuestions: AdminQuestion[] = [
   },
   {
     id: 'q-4',
+    sectionId: 'section-1',
     text: 'Why is the man unable to attend the event?',
     audioUrl: null,
     options: [
@@ -62,6 +66,7 @@ export const sampleQuestions: AdminQuestion[] = [
   },
   {
     id: 'q-5',
+    sectionId: 'section-2',
     text: 'Choose the correct form: She _____ to the office every day.',
     audioUrl: null,
     options: [
@@ -74,6 +79,7 @@ export const sampleQuestions: AdminQuestion[] = [
   },
   {
     id: 'q-6',
+    sectionId: 'section-2',
     text: 'Which sentence is grammatically correct?',
     audioUrl: null,
     options: [
@@ -86,6 +92,7 @@ export const sampleQuestions: AdminQuestion[] = [
   },
   {
     id: 'q-7',
+    sectionId: 'section-2',
     text: 'Select the best word: If it rains tomorrow, we _____ stay indoors.',
     audioUrl: null,
     options: [
@@ -98,6 +105,7 @@ export const sampleQuestions: AdminQuestion[] = [
   },
   {
     id: 'q-8',
+    sectionId: 'section-3',
     text: 'Based on the passage, what is the author\'s main argument?',
     audioUrl: null,
     options: [
@@ -110,6 +118,7 @@ export const sampleQuestions: AdminQuestion[] = [
   },
   {
     id: 'q-9',
+    sectionId: 'section-3',
     text: 'What does the word "adjacent" most nearly mean in the passage?',
     audioUrl: null,
     options: [
@@ -122,6 +131,7 @@ export const sampleQuestions: AdminQuestion[] = [
   },
   {
     id: 'q-10',
+    sectionId: 'section-3',
     text: 'Which detail best supports the claim that cities are becoming greener?',
     audioUrl: null,
     options: [
@@ -146,7 +156,6 @@ export const sampleSections: AdminSection[] = [
     timeLimit: 10,
     maxScore: 40,
     randomize: false,
-    questionIds: ['q-1', 'q-2', 'q-3', 'q-4'],
     scoreMap: [
       { rawScore: 0, scaledScore: 0 },
       { rawScore: 1, scaledScore: 10 },
@@ -162,7 +171,6 @@ export const sampleSections: AdminSection[] = [
     timeLimit: 10,
     maxScore: 30,
     randomize: true,
-    questionIds: ['q-5', 'q-6', 'q-7'],
     scoreMap: [],
   },
   {
@@ -172,7 +180,6 @@ export const sampleSections: AdminSection[] = [
     timeLimit: 15,
     maxScore: 30,
     randomize: false,
-    questionIds: ['q-8', 'q-9', 'q-10'],
     scoreMap: [],
   },
 ]
@@ -236,6 +243,8 @@ export const sampleUsers: AdminUser[] = [
   {
     id: 'user-1',
     name: 'Budi Santoso',
+    email: 'budi@email.com',
+    phone: '0812-3456-7890',
     testCode: 'USER-AB12',
     certificateEnabled: true,
     groupIds: ['group-1', 'group-2'],
@@ -243,6 +252,8 @@ export const sampleUsers: AdminUser[] = [
   {
     id: 'user-2',
     name: 'Siti Nurhaliza',
+    email: 'siti@email.com',
+    phone: '0813-4567-8901',
     testCode: 'USER-CD34',
     certificateEnabled: true,
     groupIds: ['group-1'],
@@ -250,6 +261,8 @@ export const sampleUsers: AdminUser[] = [
   {
     id: 'user-3',
     name: 'Ahmad Fauzi',
+    email: 'ahmad.fauzi@email.com',
+    phone: '',
     testCode: 'USER-EF56',
     certificateEnabled: false,
     groupIds: ['group-1'],
@@ -257,6 +270,8 @@ export const sampleUsers: AdminUser[] = [
   {
     id: 'user-4',
     name: 'Dewi Lestari',
+    email: 'dewi.lestari@email.com',
+    phone: '0856-7890-1234',
     testCode: 'USER-GH78',
     certificateEnabled: true,
     groupIds: ['group-1'],
@@ -264,6 +279,8 @@ export const sampleUsers: AdminUser[] = [
   {
     id: 'user-5',
     name: 'Rudi Hartono',
+    email: '',
+    phone: '',
     testCode: 'USER-IJ90',
     certificateEnabled: false,
     groupIds: ['group-1'],
@@ -271,6 +288,8 @@ export const sampleUsers: AdminUser[] = [
   {
     id: 'user-6',
     name: 'Fitri Amelia',
+    email: 'fitri@email.com',
+    phone: '0818-9012-3456',
     testCode: 'USER-KL12',
     certificateEnabled: true,
     groupIds: ['group-1'],
@@ -278,6 +297,8 @@ export const sampleUsers: AdminUser[] = [
   {
     id: 'user-7',
     name: 'Dimas Saputra',
+    email: '',
+    phone: '0857-1234-5678',
     testCode: 'USER-MN34',
     certificateEnabled: false,
     groupIds: ['group-2'],

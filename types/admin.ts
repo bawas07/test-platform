@@ -8,6 +8,7 @@ export interface AdminQuestionOption {
 
 export interface AdminQuestion {
   id: string
+  sectionId: string
   text: string
   audioUrl: string | null
   options: AdminQuestionOption[]
@@ -26,7 +27,6 @@ export interface AdminSection {
   timeLimit: number
   maxScore: number
   randomize: boolean
-  questionIds: string[]
   scoreMap: ScoreMapRow[]
 }
 
@@ -56,6 +56,8 @@ export interface AdminGroup {
 export interface AdminUser {
   id: string
   name: string
+  email: string
+  phone: string
   testCode: string
   certificateEnabled: boolean
   groupIds: string[]

@@ -124,15 +124,6 @@ export const useAdminStore = defineStore('admin', () => {
     sections.value = sections.value.filter((s) => s.id !== id)
   }
 
-  async function reorderSectionQuestions(
-    sectionId: string,
-    questionIds: string[],
-  ): Promise<void> {
-    const section = sections.value.find((s) => s.id === sectionId)
-    if (!section) throw new Error(`Section ${sectionId} not found`)
-    section.questionIds = [...questionIds]
-  }
-
   async function updateSectionScoreMap(
     sectionId: string,
     rows: ScoreMapRow[],
@@ -259,11 +250,16 @@ export const useAdminStore = defineStore('admin', () => {
   // -----------------------------------------------------------------------
 
   async function createUser(
-    data: Omit<AdminUser, 'id' | 'testCode'>,
+    data: Omit<AdminUser, 'id' | 'testCode' | 'email' | 'phone'> & {
+      email?: string
+      phone?: string
+    },
   ): Promise<AdminUser> {
     const newUser: AdminUser = {
       id: `user-${Date.now()}`,
       testCode: generateCode(),
+      email: '',
+      phone: '',
       ...data,
     }
     users.value = [...users.value, newUser]
@@ -343,7 +339,6 @@ export const useAdminStore = defineStore('admin', () => {
     createSection,
     updateSection,
     deleteSection,
-    reorderSectionQuestions,
     updateSectionScoreMap,
 
     // Tests

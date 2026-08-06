@@ -5,7 +5,7 @@ const route = useRoute()
 
 // Filters
 const searchQuery = ref('')
-const filterTest = ref<string>('')
+const filterTest = ref<string>((route.query.test as string) || '')
 
 const filteredSections = computed(() => {
   let list = store.sections
@@ -36,6 +36,12 @@ function testCount(sectionId: string): number {
   ).length
 }
 
+function testNames(sectionId: string): string[] {
+  return store.tests
+    .filter((t) => t.sectionAssignments.some((a) => a.sectionId === sectionId))
+    .map((t) => t.name)
+}
+
 function goToQuestions(sectionId: string) {
   navigateTo({ path: '/admin/questions', query: { section: sectionId } })
 }
@@ -52,7 +58,6 @@ async function createSection() {
       timeLimit: 0,
       maxScore: 0,
       randomize: false,
-      questionIds: [],
       scoreMap: [],
     })
     toast.show('Section created', 'success')
@@ -111,14 +116,22 @@ const columns = [
       </template>
       <template #cell-questions="{ row }">
         <button class="link-btn" @click="goToQuestions(row.id)">
-          {{ row.questionIds.length }} question{{ row.questionIds.length !== 1 ? 's' : '' }}
+          {{ store.questions.filter(q => q.sectionId === row.id).length }} question{{ store.questions.filter(q => q.sectionId === row.id).length !== 1 ? 's' : '' }}
         </button>
       </template>
       <template #cell-testCount="{ row }">
-        {{ testCount(row.id) || '—' }}
+        <span
+          v-if="testCount(row.id) > 0"
+          class="test-count-tip"
+          :data-tooltip="testNames(row.id).join(', ')"
+        >
+          {{ testCount(row.id) }}
+        </span>
+        <span v-else>—</span>
       </template>
       <template #cell-actions="{ row }">
         <div class="actions-cell">
+          <AppButton variant="ghost" size="sm" @click="navigateTo(`/admin/sections/${row.id}?view=1`)"><i class="ti ti-eye" /> View</AppButton>
           <AppButton variant="ghost" size="sm" @click="goToDetail(row.id)"><i class="ti ti-edit" /> Edit</AppButton>
           <AppButton variant="ghost" size="sm" class="delete-ghost" @click="deleteSection(row.id)"><i class="ti ti-trash" /> Delete</AppButton>
         </div>
@@ -209,5 +222,34 @@ const columns = [
 
 .link-btn:hover {
   color: var(--color-primary-dark);
+}
+
+.test-count-tip {
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.test-count-tip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  z-index: 10;
+}
+
+.test-count-tip:hover::after {
+  opacity: 1;
 }
 </style>
