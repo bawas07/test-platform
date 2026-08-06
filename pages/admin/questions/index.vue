@@ -3,6 +3,7 @@ import type { AdminQuestion, AdminQuestionOption } from '~/types/admin'
 
 const store = useAdminStore()
 const toast = useToastStore()
+const route = useRoute()
 
 const showModal = ref(false)
 const editingId = ref<string | null>(null)
@@ -17,7 +18,7 @@ const LABELS = ['A', 'B', 'C', 'D', 'E', 'F']
 
 // Filters
 const searchQuery = ref('')
-const filterSection = ref<string>('')
+const filterSection = ref<string>((route.query.section as string) || '')
 const filterAudio = ref<string>('')
 
 const filteredQuestions = computed(() => {

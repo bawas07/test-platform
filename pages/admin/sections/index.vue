@@ -1,6 +1,48 @@
 <script setup lang="ts">
 const store = useAdminStore()
 const toast = useToastStore()
+const route = useRoute()
+
+// Filters
+const searchQuery = ref('')
+const filterTest = ref<string>('')
+
+const filteredSections = computed(() => {
+  let list = store.sections
+
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter(
+      (s) =>
+        s.displayName.toLowerCase().includes(q) ||
+        s.sectionKey.toLowerCase().includes(q),
+    )
+  }
+
+  if (filterTest.value) {
+    const test = store.tests.find((t) => t.id === filterTest.value)
+    if (test) {
+      const ids = new Set(test.sectionAssignments.map((a) => a.sectionId))
+      list = list.filter((s) => ids.has(s.id))
+    }
+  }
+
+  return list
+})
+
+function testCount(sectionId: string): number {
+  return store.tests.filter((t) =>
+    t.sectionAssignments.some((a) => a.sectionId === sectionId),
+  ).length
+}
+
+function goToQuestions(sectionId: string) {
+  navigateTo({ path: '/admin/questions', query: { section: sectionId } })
+}
+
+async function goToDetail(id: string) {
+  await navigateTo(`/admin/sections/${id}`)
+}
 
 async function createSection() {
   try {
@@ -30,16 +72,11 @@ async function deleteSection(id: string) {
   }
 }
 
-function goToDetail(id: string) {
-  navigateTo(`/admin/sections/${id}`)
-}
-
 const columns = [
-  { key: 'name', label: 'Name' },
-  { key: 'timeLimit', label: 'Time Limit (min)' },
-  { key: 'maxScore', label: 'Max Score' },
+  { key: 'displayName', label: 'Name' },
+  { key: 'sectionKey', label: 'Identifier' },
   { key: 'questions', label: 'Questions' },
-  { key: 'randomize', label: 'Randomize' },
+  { key: 'testCount', label: 'Part of test' },
   { key: 'actions', label: 'Actions' },
 ]
 </script>
@@ -53,18 +90,32 @@ const columns = [
       </AppButton>
     </div>
 
-    <DataTable :columns="columns" :rows="store.sections">
-      <template #cell-name="{ row }">
+    <div class="filter-bar">
+      <AppInput
+        v-model="searchQuery"
+        placeholder="Search by name or key…"
+        class="filter-search"
+      />
+      <select v-model="filterTest" class="styled-select filter-select">
+        <option value="">All tests</option>
+        <option v-for="t in store.tests" :key="t.id" :value="t.id">{{ t.name }}</option>
+      </select>
+    </div>
+
+    <DataTable :columns="columns" :rows="filteredSections" :empty-message="store.sections.length ? 'No sections match the current filters' : undefined">
+      <template #cell-displayName="{ row }">
         {{ row.displayName }}
       </template>
-      <template #cell-timeLimit="{ row }">
-        {{ row.timeLimit }} min
+      <template #cell-sectionKey="{ row }">
+        <code class="key-code">{{ row.sectionKey || '—' }}</code>
       </template>
       <template #cell-questions="{ row }">
-        {{ row.questionIds.length }}
+        <button class="link-btn" @click="goToQuestions(row.id)">
+          {{ row.questionIds.length }} question{{ row.questionIds.length !== 1 ? 's' : '' }}
+        </button>
       </template>
-      <template #cell-randomize="{ row }">
-        <AppBadge :label="row.randomize ? 'Yes' : 'No'" :variant="row.randomize ? 'primary' : 'neutral'" />
+      <template #cell-testCount="{ row }">
+        {{ testCount(row.id) || '—' }}
       </template>
       <template #cell-actions="{ row }">
         <div class="actions-cell">
@@ -103,5 +154,60 @@ const columns = [
 .delete-ghost:hover {
   color: var(--color-danger);
   background-color: var(--color-danger-bg);
+}
+
+.filter-bar {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.filter-search {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.filter-select {
+  flex: 0 0 auto;
+  min-width: 150px;
+  height: 40px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+}
+
+.filter-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.key-code {
+  font-size: var(--text-xs);
+  background: var(--color-bg-page);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+}
+
+.link-btn {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link-btn:hover {
+  color: var(--color-primary-dark);
 }
 </style>
